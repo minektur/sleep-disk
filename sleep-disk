@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# watch for lid close, and if backup drive is mounted, unmount it, sleep
+# otherwise, if no lid close, check to see if drive isn't mounted, and if present
+# try to mount it
+
+
+#set your drive variables here:
+DRIVEUUID="11F574C5-FC46-435A-AE70-12D5D2CD072E"
+DRIVEKEY="****YOURKEYHERE*****"
+MOUNTPOINT="/Volumes/macback"
+LOGFILE="/Users/fred/lib/sleep-disk.log"
+
+#log to wherever
+exec > $LOGFILE 2>&1
+
+LAST=`ioreg -r -k AppleClamshellState | grep AppleClamshellState | awk '{print $4}'`
+
+D=$( date )
+echo "Starting sleep-disk monitor at $D"
+
+while true; do
+    NOW=`ioreg -r -k AppleClamshellState | grep AppleClamshellState | awk '{print $4}'`
+    if [ "$LAST" = "No" -a "$NOW" = "Yes" -a -d "$MOUNTPOINT" ]; then  #lid just closed and drive mounted
+
+        # both of these shouldn't be necessary, but one or the other occasionally fails for me
+        # belt and suspenders
+        echo "Unmount now"
+        diskutil eject "$DRIVEUUID"
+        diskutil unmountDisk "$DRIVEUUID"
+
+        pmset sleepnow
+        # I have an external, 2nd monitor at work. When I close the lid to sleep
+        # often clamshell mode will force-rewaken right after the sleep
+        # so give me a good window in which to unplug all my cables and walk away.
+        # the drive will still be unmounted when I unplug so life will be fine and the 
+        # computer will re-sleep shortly.  When I wake, it will take a while
+        # for this script to wake up and try to remount, but no-big-deal
+        sleep 20
+    else
+       if [ ! -d "$MOUNTPOINT" ]; then
+
+           MOUNTED=$( diskutil info "$DRIVEUUID" | grep 'Identifier' )
+
+           #if we see the drive attached
+           if [ -n "$MOUNTED" ]; then 
+               echo "attached, so try to mount"
+               echo "$DRIVEKEY" | diskutil coreStorage unlockVolume  "$DRIVEUUID" -stdinpassphrase
+               diskutil mount "$DRIVEUUID"
+           fi
+       fi
+    fi
+    sleep 1
+    #echo -n "."
+done
+

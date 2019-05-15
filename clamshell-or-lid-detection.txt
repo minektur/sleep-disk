@@ -1,0 +1,33 @@
+# I tried a lot of different things to detect clamshell mode and do something clever to make
+# it sleep right, but I can't for the life of me figure out how to easily disable clamshell
+# on Mojave.  The 'sleep for a while' method has solved my problem but seems a little hacky
+# Come on Apple - how hard should it be to have my mbp actually sleep when I close the lid?
+# Whether or not I have an external monitor shouldn't affect things, or at least should be
+# configurable.
+
+# here are the many ways I found to detect from shell whether I had a second monitor or not
+
+
+
+# commands that have different output when in clamshell mode/laptop-display closed
+
+#the cannonical way that people say to use, all over the internet
+ioreg -r -k AppleClamshellState | grep AppleClamshellState
+
+system_profiler SPDisplaysDataType
+xrandr -q
+
+screencapture 1.png 2.png 3.png #will only create as many files as there are screens
+
+ioreg -n IODisplayWrangler
+ioreg -lw0  | grep 'display-connect-flags'
+ioreg -lw0  | grep 'display-type'
+#also IODisplayGUID (and related things in this field)
+ioreg -lw0  | grep 'DisplaySerialNumber' (one or two entries)
+
+#maybe not this one
+defaults read /Library/Preferences/com.apple.windowserver.plist
+
+
+
+
